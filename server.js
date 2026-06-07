@@ -1,27 +1,50 @@
 const http = require('http');
 const url = require('url');
 
-const server = http.createServer((req, res) => {
-  const p = url.parse(req.url, true).query;
+const server = http.createServer(async (req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const path = parsedUrl.pathname;
+  const p = parsedUrl.query;
 
-  const reportID = p.reportID || "";
-  const projectID = p.projectID || "";
-  const reportType = p.reportType || "";
-  const period = p.period || "";
-  const progressSummary = p.progressSummary || "";
-  const totalCost = p.totalCost || "";
-  const approvalStatus = p.approvalStatus || "";
-  const createdAt = p.createdAt || "";
-  const projectName = p.projectName || "";
-  const location = p.location || "";
-  const client = p.client || "";
-  const contractor = p.contractor || "";
-  const budget = p.budget || "";
-  const budgetSpent = p.budgetSpent || "";
-  const status = p.status || "";
-  const type = p.type || "";
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  const html = `<!DOCTYPE html>
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  // PDF Report route
+  if (path === '/' || path === '') {
+    const reportID = p.reportID || "";
+    const projectID = p.projectID || "";
+    const reportType = p.reportType || "";
+    const period = p.period || "";
+    const progressSummary = p.progressSummary || "";
+    const totalCost = p.totalCost || "";
+    const approvalStatus = p.approvalStatus || "";
+    const createdAt = p.createdAt || "";
+    const projectName = p.projectName || "";
+    const location = p.location || "";
+    const client = p.client || "";
+    const contractor = p.contractor || "";
+    const budget = p.budget || "";
+    const budgetSpent = p.budgetSpent || "";
+    const status = p.status || "";
+    const type = p.type || "";
+    const images = p.images || "";
+
+    const imageHTML = images ? `
+    <div style="margin-top:15px;">
+      <label style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Site Image</label>
+      <br>
+      <img src="${images}" style="width:100%;max-height:300px;object-fit:cover;border-radius:8px;margin-top:8px;" />
+    </div>` : "";
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -80,6 +103,7 @@ const server = http.createServer((req, res) => {
   </div>
   <div class="section-title">PROJECT SUMMARY</div>
   <div class="field"><label>Progress Summary</label><p style="font-weight:normal;line-height:1.6">${progressSummary}</p></div>
+  ${imageHTML}
   <div class="section-title">FINANCIAL SUMMARY</div>
   <div class="financial-box">
     <div class="fin-row">
@@ -107,8 +131,164 @@ const server = http.createServer((req, res) => {
 </body>
 </html>`;
 
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  res.end(html);
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(html);
+    return;
+  }
+
+  // AI Assistant route
+  if (path === '/ai') {
+    const projectName = p.projectName || "Unknown";
+    const status = p.status || "Unknown";
+    const budget = p.budget || "0";
+    const budgetSpent = p.budgetSpent || "0";
+    const timeProgress = p.timeProgress || "0";
+    const overallProgress = p.overallProgress || "0";
+    const advice = p.advice || "";
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Assistant - SmartBuild</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
+  .header { background: #1e293b; padding: 15px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #334155; }
+  .header .logo { font-size: 18px; font-weight: bold; color: white; }
+  .header .logo span { color: #f97316; }
+  .header .project-name { font-size: 13px; color: #94a3b8; }
+  .project-card { background: #1e293b; margin: 15px; border-radius: 10px; padding: 15px; border: 1px solid #334155; }
+  .project-card h3 { font-size: 14px; color: #f97316; margin-bottom: 10px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: #0f172a; border-radius: 8px; padding: 10px; }
+  .stat label { font-size: 10px; color: #64748b; text-transform: uppercase; }
+  .stat p { font-size: 16px; font-weight: bold; color: white; margin-top: 3px; }
+  .advice-box { background: #1e3a2f; border: 1px solid #16a34a; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 13px; color: #86efac; }
+  .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+  .message { max-width: 85%; padding: 12px 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .message.user { background: #f97316; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .message.ai { background: #1e293b; color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .message.loading { background: #1e293b; color: #64748b; align-self: flex-start; }
+  .input-area { background: #1e293b; padding: 15px; border-top: 1px solid #334155; display: flex; gap: 10px; }
+  .input-area input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 25px; padding: 12px 18px; color: white; font-size: 14px; outline: none; }
+  .input-area input::placeholder { color: #64748b; }
+  .input-area button { background: #f97316; border: none; border-radius: 50%; width: 45px; height: 45px; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .suggestions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 15px; }
+  .suggestion { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 6px 12px; font-size: 12px; color: #94a3b8; cursor: pointer; white-space: nowrap; }
+  .suggestion:hover { border-color: #f97316; color: #f97316; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="logo">Smart<span>Build</span> AI</div>
+    <div class="project-name">${projectName}</div>
+  </div>
+</div>
+
+<div class="project-card">
+  <h3>📊 Project Overview</h3>
+  <div class="stats">
+    <div class="stat"><label>Status</label><p>${status}</p></div>
+    <div class="stat"><label>Progress</label><p>${overallProgress}%</p></div>
+    <div class="stat"><label>Budget</label><p>${budget}</p></div>
+    <div class="stat"><label>Spent</label><p>${budgetSpent}</p></div>
+  </div>
+  <div class="advice-box">${advice || "✅ Project data loaded. Ask me anything!"}</div>
+</div>
+
+<div class="suggestions">
+  <div class="suggestion" onclick="askQuestion('Why is my project delayed?')">Why delayed?</div>
+  <div class="suggestion" onclick="askQuestion('How can I improve progress?')">Improve progress</div>
+  <div class="suggestion" onclick="askQuestion('Is my budget on track?')">Budget status</div>
+  <div class="suggestion" onclick="askQuestion('What tasks should I prioritize?')">Priorities</div>
+</div>
+
+<div class="chat-container" id="chat"></div>
+
+<div class="input-area">
+  <input type="text" id="userInput" placeholder="Ask about your project..." onkeypress="if(event.key==='Enter') sendMessage()" />
+  <button onclick="sendMessage()">➤</button>
+</div>
+
+<script>
+const projectData = {
+  name: "${projectName}",
+  status: "${status}",
+  budget: "${budget}",
+  budgetSpent: "${budgetSpent}",
+  timeProgress: "${timeProgress}",
+  overallProgress: "${overallProgress}",
+  advice: "${advice}"
+};
+
+const GEMINI_API_KEY = "AQ.Ab8RN6LK7aPaYqnoJSpEViynXQYaCysn7mD_TcwCgaGKIveeoA";
+
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+  addMessage(question, 'user');
+  addMessage('Thinking...', 'loading', 'loading-msg');
+
+  const prompt = \`You are an AI assistant for SmartBuild, a construction project management app.
+Project Data:
+- Project Name: \${projectData.name}
+- Status: \${projectData.status}
+- Budget: \${projectData.budget}
+- Budget Spent: \${projectData.budgetSpent}
+- Time Progress: \${projectData.timeProgress}%
+- Overall Progress: \${projectData.overallProgress}%
+- Current Advice: \${projectData.advice}
+
+The engineer asks: \${question}
+
+Provide a helpful, specific answer based on the project data. Be concise and practical.\`;
+
+  try {
+    const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=\${GEMINI_API_KEY}\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await response.json();
+    const reply = data.candidates[0].content.parts[0].text;
+    document.getElementById('loading-msg').remove();
+    addMessage(reply, 'ai');
+  } catch(e) {
+    document.getElementById('loading-msg').remove();
+    addMessage('Sorry, I could not connect. Please try again.', 'ai');
+  }
+}
+
+function askQuestion(q) {
+  document.getElementById('userInput').value = q;
+  sendMessage();
+}
+
+function addMessage(text, type, id) {
+  const chat = document.getElementById('chat');
+  const msg = document.createElement('div');
+  msg.className = 'message ' + type;
+  if (id) msg.id = id;
+  msg.textContent = text;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+</body>
+</html>`;
+
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(html);
+    return;
+  }
+
+  res.writeHead(404);
+  res.end('Not found');
 });
 
 const PORT = process.env.PORT || 3000;
