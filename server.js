@@ -249,18 +249,24 @@ The engineer asks: \${question}
 Provide a helpful, specific answer based on the project data. Be concise and practical.\`;
 
   try {
-    const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\${GEMINI_API_KEY}\`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     const data = await response.json();
-    const reply = data.candidates[0].content.parts[0].text;
-    document.getElementById('loading-msg').remove();
-    addMessage(reply, 'ai');
+    console.log('Gemini response:', JSON.stringify(data));
+    if (data.candidates && data.candidates[0]) {
+      const reply = data.candidates[0].content.parts[0].text;
+      document.getElementById('loading-msg').remove();
+      addMessage(reply, 'ai');
+    } else {
+      document.getElementById('loading-msg').remove();
+      addMessage('Error: ' + JSON.stringify(data), 'ai');
+    }
   } catch(e) {
     document.getElementById('loading-msg').remove();
-    addMessage('Sorry, I could not connect. Please try again.', 'ai');
+    addMessage('Error: ' + e.message, 'ai');
   }
 }
 
