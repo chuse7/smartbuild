@@ -6,7 +6,6 @@ const server = http.createServer(async (req, res) => {
   const path = parsedUrl.pathname;
   const p = parsedUrl.query;
 
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -155,7 +154,7 @@ const server = http.createServer(async (req, res) => {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
-  .header { background: #1e293b; padding: 15px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #334155; }
+  .header { background: #1e293b; padding: 15px 20px; border-bottom: 1px solid #334155; }
   .header .logo { font-size: 18px; font-weight: bold; color: white; }
   .header .logo span { color: #f97316; }
   .header .project-name { font-size: 13px; color: #94a3b8; }
@@ -174,18 +173,16 @@ const server = http.createServer(async (req, res) => {
   .input-area { background: #1e293b; padding: 15px; border-top: 1px solid #334155; display: flex; gap: 10px; }
   .input-area input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 25px; padding: 12px 18px; color: white; font-size: 14px; outline: none; }
   .input-area input::placeholder { color: #64748b; }
-  .input-area button { background: #f97316; border: none; border-radius: 50%; width: 45px; height: 45px; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .input-area button { background: #f97316; border: none; border-radius: 50%; width: 45px; height: 45px; color: white; font-size: 20px; cursor: pointer; }
   .suggestions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 15px; }
-  .suggestion { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 6px 12px; font-size: 12px; color: #94a3b8; cursor: pointer; white-space: nowrap; }
+  .suggestion { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 6px 12px; font-size: 12px; color: #94a3b8; cursor: pointer; }
   .suggestion:hover { border-color: #f97316; color: #f97316; }
 </style>
 </head>
 <body>
 <div class="header">
-  <div>
-    <div class="logo">Smart<span>Build</span> AI</div>
-    <div class="project-name">${projectName}</div>
-  </div>
+  <div class="logo">Smart<span>Build</span> AI</div>
+  <div class="project-name">${projectName}</div>
 </div>
 
 <div class="project-card">
@@ -234,28 +231,15 @@ async function sendMessage() {
   addMessage(question, 'user');
   addMessage('Thinking...', 'loading', 'loading-msg');
 
-  const prompt = \`You are an AI assistant for SmartBuild, a construction project management app.
-Project Data:
-- Project Name: \${projectData.name}
-- Status: \${projectData.status}
-- Budget: \${projectData.budget}
-- Budget Spent: \${projectData.budgetSpent}
-- Time Progress: \${projectData.timeProgress}%
-- Overall Progress: \${projectData.overallProgress}%
-- Current Advice: \${projectData.advice}
-
-The engineer asks: \${question}
-
-Provide a helpful, specific answer based on the project data. Be concise and practical.\`;
+  const prompt = "You are an AI assistant for SmartBuild construction app. Project: " + projectData.name + ", Status: " + projectData.status + ", Budget: " + projectData.budget + ", Spent: " + projectData.budgetSpent + ", Progress: " + projectData.overallProgress + "%. Question: " + question + ". Give a short practical answer.";
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     const data = await response.json();
-    console.log('Gemini response:', JSON.stringify(data));
     if (data.candidates && data.candidates[0]) {
       const reply = data.candidates[0].content.parts[0].text;
       document.getElementById('loading-msg').remove();
