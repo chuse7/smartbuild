@@ -224,7 +224,7 @@ const projectData = {
   advice: "${advice}"
 };
 
-const GEMINI_API_KEY = "AQ.Ab8RN6LK7aPaYqnoJSpEViynXQYaCysn7mD_TcwCgaGKIveeoA";
+const GEMINI_API_KEY = "AQ.Ab8RN6ISBVxTQZR29ojmVw07vc3FDh7PX5dSPb8-RTdeS5Icig";
 
 async function sendMessage() {
   const input = document.getElementById('userInput');
