@@ -221,7 +221,7 @@ const projectData = {
   advice: "${advice}"
 };
 
-const GEMINI_API_KEY = "AQ.Ab8RN6I4qWof9A4DCxMyT74DJL80jIr9git-635L4DfQ6-LNvg";
+const GROQ_API_KEY = "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";
 
 async function sendMessage() {
   const input = document.getElementById('userInput');
@@ -234,14 +234,20 @@ async function sendMessage() {
   const prompt = "You are an AI assistant for SmartBuild construction app. Project: " + projectData.name + ", Status: " + projectData.status + ", Budget: " + projectData.budget + ", Spent: " + projectData.budgetSpent + ", Progress: " + projectData.overallProgress + "%. Question: " + question + ". Give a short practical answer.";
 
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await response.json();
-    if (data.candidates && data.candidates[0]) {
-      const reply = data.candidates[0].content.parts[0].text;
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + GROQ_API_KEY
+  },
+  body: JSON.stringify({ 
+    model: "llama3-8b-8192",
+    messages: [{ role: "user", content: prompt }]
+  })
+});
+const data = await response.json();
+if (data.choices && data.choices[0]) {
+  const reply = data.choices[0].message.content;
       document.getElementById('loading-msg').remove();
       addMessage(reply, 'ai');
     } else {
