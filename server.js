@@ -221,7 +221,7 @@ const projectData = {
   advice: "${advice}"
 };
 
-const GROQ_API_KEY = "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";
+const GROQ_API_KEY = "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";
 
 async function sendMessage() {
   const input = document.getElementById('userInput');
